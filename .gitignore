@@ -1,0 +1,27 @@
+# --- General ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
+
+# --- Python (Backend) ---
+__pycache__/
+*.py[cod]
+*$py.class
+backend/venv/
+backend/.venv/
+*.env
+
+# --- Node/React (Frontend) ---
+frontend/node_modules/
+frontend/build/
+frontend/dist/
+frontend/.pnp
+.yarn/
+
+# --- Docker & Database ---
+postgres_data/ 
+
+# --- Seguridad / Secretos ---
+.env
