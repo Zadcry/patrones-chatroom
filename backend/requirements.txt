@@ -9,3 +9,4 @@ python-dotenv
 pydantic-settings
 passlib      
 bcrypt==3.2.0
+websockets

@@ -1,16 +1,18 @@
 # backend/app/routers/chat.py
+from datetime import datetime # <--- FALTABA ESTO
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from app.core.database import get_db
-from app.models.models import Message, User, RoomMember
+# Asegúrate de importar RoomMember aquí
+from app.models.models import Message, User, RoomMember 
 from app.services.broker import publish_message
 from app.core.security import settings
 from jose import jwt, JWTError
 
 router = APIRouter(tags=["Chat"])
 
-# Función auxiliar para validar token en WebSocket (los WS no usan headers HTTP estandar)
+# Función auxiliar para validar token en WebSocket
 async def get_user_from_token(token: str, db: Session):
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
@@ -24,6 +26,7 @@ async def get_user_from_token(token: str, db: Session):
 
 class ConnectionManager:
     def __init__(self):
+        # Diccionario: {room_id: [WebSocket, ...]}
         self.active_connections: dict[int, List[WebSocket]] = {}
 
     async def connect(self, websocket: WebSocket, room_id: int):
@@ -39,12 +42,12 @@ class ConnectionManager:
 
     async def broadcast(self, message: dict, room_id: int):
         if room_id in self.active_connections:
-            # Iteramos sobre una copia para evitar errores si alguien se desconecta durante el loop
+            # Iteramos copia de la lista para evitar errores si alguien se desconecta en el proceso
             for connection in self.active_connections[room_id][:]:
                 try:
                     await connection.send_json(message)
                 except Exception:
-                    # Manejo básico de error de socket muerto
+                    # Si el socket está muerto, lo ignoramos (se limpiará en disconnect)
                     pass
 
 manager = ConnectionManager()
@@ -68,7 +71,7 @@ def get_history(room_id: int, limit: int = 50, offset: int = 0, db: Session = De
             "content": msg.content,
             "user_id": msg.user_id,
             "username": uname,
-            "created_at": msg.created_at.isoformat()
+            "created_at": msg.created_at.isoformat() if msg.created_at else str(datetime.now())
         })
     return history
 
@@ -78,46 +81,59 @@ def get_history(room_id: int, limit: int = 50, offset: int = 0, db: Session = De
 async def websocket_endpoint(
     websocket: WebSocket, 
     room_id: int, 
-    token: str = Query(...), # Token viene en la URL ?token=...
+    token: str = Query(...), 
     db: Session = Depends(get_db)
 ):
     # 1. Validar Usuario
     user = await get_user_from_token(token, db)
     if not user:
-        await websocket.close(code=4003) # Forbidden
+        # Código 4003 no es estándar en todos los navegadores, usamos 1008 (Policy Violation) o cerramos simple
+        await websocket.close(code=1008, reason="Invalid Token") 
         return
 
     # 2. Validar Membresía (Seguridad)
+    # Si RoomMember no estaba importado, aquí explotaba el backend
     member = db.query(RoomMember).filter_by(room_id=room_id, user_id=user.id).first()
     if not member:
-        await websocket.close(code=4003, reason="Not a member of this room")
+        await websocket.close(code=1008, reason="Not a member")
         return
 
     await manager.connect(websocket, room_id)
     
-    # Notificar entrada (Opcional según requisitos)
-    join_msg = {"type": "system", "content": f"{user.username} joined", "user": "System"}
+    # Notificar entrada
+    # Usamos str(datetime.now()) para evitar problemas de serialización JSON
+    join_msg = {
+        "type": "system", 
+        "content": f"{user.username} joined", 
+        "username": "System",
+        "created_at": str(datetime.now()) 
+    }
     await manager.broadcast(join_msg, room_id)
 
     try:
         while True:
             data = await websocket.receive_text()
             
-            # Construir payload completo
             message_payload = {
                 "room_id": room_id,
-                "user_id": user.id,      # Importante para persistencia
-                "username": user.username, # Importante para UI inmediata
+                "user_id": user.id,
+                "username": user.username,
                 "content": data,
-                "created_at": str(datetime.now()) # Timestamp temporal para UI
+                "created_at": str(datetime.now()) # <--- Aquí explotaba si faltaba importar datetime
             }
             
-            # 1. Enviar a clientes conectados (Latencia < 850ms)
+            # 1. Enviar a clientes conectados
             await manager.broadcast(message_payload, room_id)
             
-            # 2. Enviar a RabbitMQ (Durabilidad)
+            # 2. Enviar a RabbitMQ
             publish_message(message_payload)
             
     except WebSocketDisconnect:
         manager.disconnect(websocket, room_id)
-        await manager.broadcast({"type": "system", "content": f"{user.username} left"}, room_id)
+        leave_msg = {
+            "type": "system", 
+            "content": f"{user.username} left", 
+            "username": "System",
+            "created_at": str(datetime.now())
+        }
+        await manager.broadcast(leave_msg, room_id)

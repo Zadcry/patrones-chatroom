@@ -14,6 +14,9 @@ class Room(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True)
     is_private = Column(Boolean, default=False)
+    password_hash = Column(String, nullable=True) 
+    created_by = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class Message(Base):
     __tablename__ = "messages"

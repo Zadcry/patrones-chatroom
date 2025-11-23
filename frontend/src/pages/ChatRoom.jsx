@@ -87,7 +87,6 @@ export default function ChatRoom() {
           onChange={(e) => setInput(e.target.value)}
           placeholder="Escribe un mensaje..."
           style={{ flex: 1, padding: '12px', marginRight: '10px', borderRadius: '20px', border: '1px solid #ccc' }}
-          disabled={!isConnected}
         />
         <button 
           type="submit" 
