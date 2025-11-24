@@ -33,7 +33,7 @@ Servicios disponibles:
 | Backend (FastAPI) | http://localhost:8000 |
 | Frontend (React) | http://localhost:3000 |
 | RabbitMQ UI | http://localhost:15672 |
-| PostgreSQL | localhost:5432 |
+| PostgreSQL | No se accede desde URL |
 
 Credenciales por defecto de RabbitMQ: guest / guest
 
