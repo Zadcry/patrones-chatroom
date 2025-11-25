@@ -10,7 +10,6 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Realtime Chat App")
 
-# --- CORRECCIÓN CORS ---
 origins = [
     "http://localhost:3000",      # Frontend en Docker (puerto mapeado)
     "http://localhost:5173",      # Frontend en desarrollo local (Vite default)
@@ -20,12 +19,11 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,        # <--- CAMBIO: Lista explícita en lugar de ["*"]
-    allow_credentials=True,       # Necesario para enviar Headers de Auth
+    allow_origins=origins,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-# -----------------------
 
 app.include_router(auth.router)
 app.include_router(rooms.router)

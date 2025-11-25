@@ -1,4 +1,3 @@
-// src/pages/ChatRoom.jsx
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useChat } from '../hooks/useChat';
@@ -12,7 +11,6 @@ export default function ChatRoom() {
   const { messages, sendMessage, isConnected } = useChat(id);
   const messagesEndRef = useRef(null);
 
-  // Scroll automático al fondo
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);

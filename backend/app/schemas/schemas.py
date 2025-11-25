@@ -24,7 +24,7 @@ class Token(BaseModel):
 class RoomCreate(BaseModel):
     name: str
     is_private: bool = False
-    password: Optional[str] = None # Requisito: password para salas privadas
+    password: Optional[str] = None
 
 class RoomJoin(BaseModel):
     password: Optional[str] = None
@@ -42,7 +42,7 @@ class MessageResponse(BaseModel):
     id: int
     content: str
     user_id: Optional[int]
-    username: str # Necesitamos devolver el nombre, no solo el ID
+    username: str
     created_at: datetime
     class Config:
         orm_mode = True

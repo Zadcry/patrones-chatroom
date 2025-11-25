@@ -4,7 +4,6 @@ import Login from './pages/Login';
 import RoomList from './pages/RoomList';
 import ChatRoom from './pages/ChatRoom';
 
-// Componente para proteger rutas privadas
 const PrivateRoute = ({ children }) => {
   const { token } = useAuth();
   return token ? children : <Navigate to="/login" />;

@@ -1,4 +1,3 @@
-// src/pages/RoomList.jsx
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../api/client';
@@ -10,12 +9,10 @@ export default function RoomList() {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
 
-  // Estado para crear sala
   const [newRoomName, setNewRoomName] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [newRoomPass, setNewRoomPass] = useState('');
 
-  // Cargar salas al inicio
   useEffect(() => {
     fetchRooms();
   }, []);
@@ -40,7 +37,7 @@ export default function RoomList() {
       setShowCreate(false);
       setNewRoomName('');
       setNewRoomPass('');
-      fetchRooms(); // Recargar lista
+      fetchRooms();
     } catch (error) {
       alert("Error creando sala: " + (error.response?.data?.detail || error.message));
     }
@@ -49,17 +46,15 @@ export default function RoomList() {
   const handleJoinRoom = async (room) => {
     let password = null;
     
-    // Si es privada, pedir password con un prompt nativo (simple para PoC)
     if (room.is_private) {
       password = prompt(`Ingrese la contraseña para la sala "${room.name}":`);
-      if (!password) return; // Cancelado
+      if (!password) return;
     }
 
     try {
       await apiClient.post(`/rooms/${room.id}/join`, { password });
       navigate(`/room/${room.id}`);
     } catch (error) {
-      // Si el error es "Already joined", permitimos entrar igual
       if (error.response?.data?.message === "Already joined") {
          navigate(`/room/${room.id}`);
       } else {

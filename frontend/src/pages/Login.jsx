@@ -1,4 +1,3 @@
-// src/pages/Login.jsx
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -21,7 +20,6 @@ export default function Login() {
     } else {
       res = await register(username, password);
       if (res.success) {
-        // Si se registra con éxito, hacemos login automático
         res = await login(username, password);
       }
     }

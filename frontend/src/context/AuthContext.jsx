@@ -1,4 +1,3 @@
-// frontend/src/context/AuthContext.jsx
 import { createContext, useState, useContext, useEffect } from 'react';
 import { jwtDecode } from "jwt-decode";
 import apiClient from '../api/client';
@@ -25,8 +24,6 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (username, password) => {
     try {
-      // CORRECCIÓN 1: Usar URLSearchParams para enviar x-www-form-urlencoded
-      // Esto es lo que FastAPI OAuth2PasswordRequestForm espera estrictamente.
       const params = new URLSearchParams();
       params.append('username', username);
       params.append('password', password);
@@ -49,7 +46,6 @@ export const AuthProvider = ({ children }) => {
       return { success: true };
     } catch (error) {
       console.error("Login error:", error);
-      // CORRECCIÓN 2: Manejo seguro del mensaje de error para evitar crash de React
       let errorMessage = 'Login failed';
       
       if (error.response?.data?.detail) {
@@ -71,12 +67,10 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (username, password) => {
     try {
-      // El registro usa JSON (Pydantic), así que no necesita cambios en formato
       await apiClient.post('/auth/register', { username, password });
       return { success: true };
     } catch (error) {
       console.error("Register error:", error);
-      // Misma lógica de seguridad para el error
       let errorMessage = 'Registration failed';
       if (error.response?.data?.detail) {
          const detail = error.response.data.detail;

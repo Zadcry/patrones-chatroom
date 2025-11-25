@@ -82,12 +82,10 @@ async def websocket_endpoint(
     # 1. Validar Usuario
     user = await get_user_from_token(token, db)
     if not user:
-        # Código 4003 no es estándar en todos los navegadores, usamos 1008 (Policy Violation) o cerramos simple
         await websocket.close(code=1008, reason="Invalid Token") 
         return
 
     # 2. Validar Membresía (Seguridad)
-    # Si RoomMember no estaba importado, aquí explotaba el backend
     member = db.query(RoomMember).filter_by(room_id=room_id, user_id=user.id).first()
     if not member:
         await websocket.close(code=1008, reason="Not a member")
@@ -96,7 +94,6 @@ async def websocket_endpoint(
     await manager.connect(websocket, room_id)
     
     # Notificar entrada
-    # Usamos str(datetime.now()) para evitar problemas de serialización JSON
     join_msg = {
         "type": "system", 
         "content": f"{user.username} joined", 
@@ -114,7 +111,7 @@ async def websocket_endpoint(
                 "user_id": user.id,
                 "username": user.username,
                 "content": data,
-                "created_at": str(datetime.now()) # <--- Aquí explotaba si faltaba importar datetime
+                "created_at": str(datetime.now())
             }
             
             # 1. Enviar a clientes conectados
