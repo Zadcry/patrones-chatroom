@@ -1,10 +1,9 @@
-# backend/app/routers/chat.py
-from datetime import datetime # <--- FALTABA ESTO
+from datetime import datetime
+import asyncio
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from app.core.database import get_db
-# Asegúrate de importar RoomMember aquí
 from app.models.models import Message, User, RoomMember 
 from app.services.broker import publish_message
 from app.core.security import settings
@@ -12,7 +11,6 @@ from jose import jwt, JWTError
 
 router = APIRouter(tags=["Chat"])
 
-# Función auxiliar para validar token en WebSocket
 async def get_user_from_token(token: str, db: Session):
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
@@ -26,7 +24,6 @@ async def get_user_from_token(token: str, db: Session):
 
 class ConnectionManager:
     def __init__(self):
-        # Diccionario: {room_id: [WebSocket, ...]}
         self.active_connections: dict[int, List[WebSocket]] = {}
 
     async def connect(self, websocket: WebSocket, room_id: int):
@@ -42,12 +39,10 @@ class ConnectionManager:
 
     async def broadcast(self, message: dict, room_id: int):
         if room_id in self.active_connections:
-            # Iteramos copia de la lista para evitar errores si alguien se desconecta en el proceso
             for connection in self.active_connections[room_id][:]:
                 try:
                     await connection.send_json(message)
                 except Exception:
-                    # Si el socket está muerto, lo ignoramos (se limpiará en disconnect)
                     pass
 
 manager = ConnectionManager()
@@ -125,8 +120,9 @@ async def websocket_endpoint(
             # 1. Enviar a clientes conectados
             await manager.broadcast(message_payload, room_id)
             
-            # 2. Enviar a RabbitMQ
-            publish_message(message_payload)
+            # 2. Enviar a RabbitMQ (Durabilidad) en un hilo aparte para no bloquear
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(None, publish_message, message_payload)
             
     except WebSocketDisconnect:
         manager.disconnect(websocket, room_id)
